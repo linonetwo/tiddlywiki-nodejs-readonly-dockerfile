@@ -1,0 +1,110 @@
+# Default values for tiddlywiki-nodejs-readonly.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# -- Number of replicas
+replicaCount: 1
+
+# -- Wiki configuration
+wiki:
+  # -- Wiki name (used for resource naming)
+  name: my-wiki
+  # -- Image to use
+  image:
+    repository: harbor.onetwo.website/library/tiddlywiki-nodejs-readonly
+    tag: latest
+    pullPolicy: IfNotPresent
+  # -- Server port (container port)
+  port: 8080
+  # -- Host to listen on
+  host: "0.0.0.0"
+  # -- Root tiddler for lazy loading
+  rootTiddler: "$:/core/save/lazy-all"
+  # -- Read-only mode (anonymous readers, authenticated writers)
+  readOnlyMode: true
+  # -- Custom username for admin (empty = auto-generated)
+  username: ""
+  # -- Custom password for admin (empty = auto-generated)
+  password: ""
+  # -- Extra plugins to load (comma-separated)
+  extraPlugins: ""
+  # -- Plugin paths (colon-separated for Linux, semicolon for Windows)
+  pluginPath: ""
+  # -- Theme paths
+  themePath: ""
+  # -- Language paths
+  languagePath: ""
+
+# -- Git-sync configuration
+gitSync:
+  # -- Enable git-sync to clone and pull wiki data from git
+  enabled: true
+  # -- Git repository URL (required if gitSync.enabled)
+  repo: ""
+  # -- Git branch
+  branch: master
+  # -- Git sync interval in seconds
+  interval: 300
+  # -- Git-sync image
+  image:
+    repository: gcr.io/google-containers/git-sync
+    tag: v3.6.6
+    pullPolicy: IfNotPresent
+  # -- SSH private key for private repos (base64 encoded)
+  sshKey: ""
+  # -- Known hosts file content for SSH
+  knownHosts: ""
+
+# -- Persistence configuration
+persistence:
+  # -- Enable persistent storage
+  enabled: true
+  # -- Storage class
+  storageClass: "longhorn"
+  # -- Storage size
+  size: 1Gi
+  # -- Access mode
+  accessMode: ReadWriteOnce
+
+# -- Service configuration
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- Service port
+  port: 80
+
+# -- Ingress configuration
+ingress:
+  # -- Enable ingress
+  enabled: true
+  # -- Ingress class name
+  className: "nginx"
+  # -- Hostname for the wiki
+  host: ""
+  # -- TLS configuration
+  tls:
+    # -- Enable TLS
+    enabled: true
+    # -- TLS secret name
+    secretName: ""
+  # -- Additional ingress annotations
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+# -- Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 64Mi
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity
+affinity: {}

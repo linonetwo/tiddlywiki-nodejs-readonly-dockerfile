@@ -1,0 +1,174 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tw.fullname" . }}
+  labels:
+    {{- include "tw.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "tw.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tw.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 120
+      volumes:
+        - name: wiki-data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "tw.fullname" . }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: restart-signal
+          emptyDir: {}
+        {{- if .Values.gitSync.sshKey }}
+        - name: git-ssh-key
+          secret:
+            secretName: {{ include "tw.fullname" . }}-git-ssh
+            defaultMode: 0600
+        {{- end }}
+      initContainers:
+        {{- if .Values.gitSync.enabled }}
+        - name: git-clone
+          image: alpine/git:2.45
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              if [ -d /wiki/.git ]; then
+                echo "Git repo already exists, pulling..."
+                cd /wiki && git pull origin {{ .Values.gitSync.branch }} || true
+              else
+                echo "Cloning repo..."
+                git clone --depth 1 --branch {{ .Values.gitSync.branch }} \
+                  {{ .Values.gitSync.repo }} /wiki || true
+              fi
+              chmod 777 /wiki || true
+          env:
+            {{- if .Values.gitSync.sshKey }}
+            - name: GIT_SSH_COMMAND
+              value: ssh -o StrictHostKeyChecking=no -i /etc/ssh-key/ssh-private-key
+            {{- end }}
+          volumeMounts:
+            - name: wiki-data
+              mountPath: /wiki
+            {{- if .Values.gitSync.sshKey }}
+            - name: git-ssh-key
+              mountPath: /etc/ssh-key
+            {{- end }}
+        {{- end }}
+      containers:
+        {{- if .Values.gitSync.enabled }}
+        - name: git-sync
+          image: {{ .Values.gitSync.image.repository }}:{{ .Values.gitSync.image.tag }}
+          imagePullPolicy: {{ .Values.gitSync.image.pullPolicy }}
+          command:
+            - /git-sync
+          args:
+            - --repo={{ .Values.gitSync.repo }}
+            - --branch={{ .Values.gitSync.branch }}
+            - --root=/tmp/git
+            - --dest=/wiki
+            - --wait={{ .Values.gitSync.interval }}
+            - --one-time=false
+            - --link=.
+          env:
+            {{- if .Values.gitSync.sshKey }}
+            - name: GIT_SSH_KEY_FILE
+              value: /etc/git-secret/ssh-private-key
+            {{- end }}
+          volumeMounts:
+            - name: wiki-data
+              mountPath: /wiki
+            - name: restart-signal
+              mountPath: /tmp/restart
+            {{- if .Values.gitSync.sshKey }}
+            - name: git-ssh-key
+              mountPath: /etc/git-secret
+            {{- end }}
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+        {{- end }}
+        - name: tiddlywiki
+          image: "{{ .Values.wiki.image.repository }}:{{ .Values.wiki.image.tag }}"
+          imagePullPolicy: {{ .Values.wiki.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.wiki.port }}
+              name: http
+          env:
+            - name: WIKI_PATH
+              value: /wiki
+            - name: PORT
+              value: "{{ .Values.wiki.port }}"
+            - name: HOST
+              value: "{{ .Values.wiki.host }}"
+            - name: ROOT_TIDDLER
+              value: "{{ .Values.wiki.rootTiddler }}"
+            - name: READ_ONLY_MODE
+              value: "{{ .Values.wiki.readOnlyMode }}"
+            {{- if .Values.wiki.username }}
+            - name: USERNAME
+              value: "{{ .Values.wiki.username }}"
+            {{- end }}
+            {{- if .Values.wiki.password }}
+            - name: PASSWORD
+              value: "{{ .Values.wiki.password }}"
+            {{- end }}
+            {{- if .Values.wiki.pluginPath }}
+            - name: TIDDLYWIKI_PLUGIN_PATH
+              value: "{{ .Values.wiki.pluginPath }}"
+            {{- end }}
+            {{- if .Values.wiki.themePath }}
+            - name: TIDDLYWIKI_THEME_PATH
+              value: "{{ .Values.wiki.themePath }}"
+            {{- end }}
+            {{- if .Values.wiki.languagePath }}
+            - name: TIDDLYWIKI_LANGUAGE_PATH
+              value: "{{ .Values.wiki.languagePath }}"
+            {{- end }}
+          volumeMounts:
+            - name: wiki-data
+              mountPath: /wiki
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.wiki.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.wiki.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          startupProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.wiki.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
