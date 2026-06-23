@@ -41,8 +41,15 @@ gitSync:
   enabled: true
   # -- Git repository URL (required if gitSync.enabled)
   repo: ""
+  # -- Subdirectory inside the repo that contains the wiki (e.g. "wiki" for TiddlyWiki-CPL)
+  subPath: ""
   # -- Git branch
   branch: master
+  # -- Git-sync sidecar image (pulled via Harbor docker-io-hub proxy as alpine/git)
+  image:
+    repository: alpine/git
+    tag: "2.47.2"
+    pullPolicy: IfNotPresent
   # -- Git sync interval in seconds
   interval: 300
   # -- Git-sync image

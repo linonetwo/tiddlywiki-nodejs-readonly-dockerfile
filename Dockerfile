@@ -16,7 +16,7 @@ RUN chmod +x /entrypoint.sh
 # Runtime stage
 FROM node:20-alpine
 
-RUN apk add --no-cache tzdata ca-certificates
+RUN apk add --no-cache tzdata ca-certificates git wget tar
 
 COPY --from=builder /app/node_modules /usr/local/lib/node_modules
 COPY --from=builder /entrypoint.sh /entrypoint.sh

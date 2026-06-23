@@ -1,7 +1,14 @@
 #!/bin/sh
 set -e
 
-WIKI_PATH="${WIKI_PATH:-/wiki}"
+WIKI_ROOT="${WIKI_PATH:-/wiki}"
+WIKI_SUBPATH="${WIKI_SUBPATH:-}"
+if [ -n "$WIKI_SUBPATH" ]; then
+    WIKI_PATH="$WIKI_ROOT/$WIKI_SUBPATH"
+else
+    WIKI_PATH="$WIKI_ROOT"
+fi
+
 PORT="${PORT:-8080}"
 HOST="${HOST:-0.0.0.0}"
 ROOT_TIDDLER="${ROOT_TIDDLER:-\$:/core/save/lazy-all}"
@@ -9,6 +16,10 @@ READ_ONLY_MODE="${READ_ONLY_MODE:-true}"
 NODE_ENV="${NODE_ENV:-production}"
 
 echo "=== TiddlyWiki Read-only Server ==="
+echo "Wiki root: $WIKI_ROOT"
+if [ -n "$WIKI_SUBPATH" ]; then
+    echo "Wiki subpath: $WIKI_SUBPATH"
+fi
 echo "Wiki path: $WIKI_PATH"
 echo "Port: $PORT"
 echo "Host: $HOST"

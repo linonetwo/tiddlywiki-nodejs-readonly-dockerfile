@@ -36,8 +36,6 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
-        - name: restart-signal
-          emptyDir: {}
         {{- if .Values.gitSync.sshKey }}
         - name: git-ssh-key
           secret:
@@ -47,59 +45,134 @@ spec:
       initContainers:
         {{- if .Values.gitSync.enabled }}
         - name: git-clone
-          image: alpine/git:2.45
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.gitSync.image.repository }}:{{ .Values.gitSync.image.tag }}"
+          imagePullPolicy: {{ .Values.gitSync.image.pullPolicy }}
           command:
             - sh
             - -c
             - |
-              if [ -d /wiki/.git ]; then
-                echo "Git repo already exists, pulling..."
-                cd /wiki && git pull origin {{ .Values.gitSync.branch }} || true
-              else
-                echo "Cloning repo..."
+              set -e
+              WIKI_DIR="/wiki"
+              {{- if .Values.gitSync.subPath }}
+              CONTENT_DIR="/wiki/{{ .Values.gitSync.subPath }}"
+              {{- else }}
+              CONTENT_DIR="/wiki"
+              {{- end }}
+
+              needs_clone() {
+                if [ -f "$CONTENT_DIR/tiddlywiki.info" ]; then
+                  if [ ! -d "$CONTENT_DIR/tiddlers" ]; then
+                    return 0
+                  fi
+                  COUNT=$(find "$CONTENT_DIR/tiddlers" -maxdepth 1 -name '*.tid' 2>/dev/null | wc -l)
+                  [ "$COUNT" -le 1 ] && return 0
+                  return 1
+                fi
+                return 0
+              }
+
+              if [ -d "$WIKI_DIR/.git" ]; then
+                echo "[git-clone] Repo exists, pulling latest..."
+                cd "$WIKI_DIR"
+                git fetch origin {{ .Values.gitSync.branch }}
+                git reset --hard "origin/{{ .Values.gitSync.branch }}"
+              elif needs_clone; then
+                echo "[git-clone] Cloning {{ .Values.gitSync.repo }}..."
+                rm -rf "$WIKI_DIR"/* "$WIKI_DIR"/.[!.]* "$WIKI_DIR"/..?* 2>/dev/null || true
                 git clone --depth 1 --branch {{ .Values.gitSync.branch }} \
-                  {{ .Values.gitSync.repo }} /wiki || true
+                  {{ .Values.gitSync.repo }} "$WIKI_DIR"
+              else
+                echo "[git-clone] Wiki data exists without git metadata, skipping clone"
               fi
-              chmod 777 /wiki || true
+
+              if [ ! -f "$CONTENT_DIR/tiddlywiki.info" ] && [ ! -d "$CONTENT_DIR/tiddlers" ]; then
+                echo "[git-clone] ERROR: wiki content not found at $CONTENT_DIR"
+                exit 1
+              fi
+              echo "[git-clone] Wiki ready at $CONTENT_DIR"
           env:
+            {{- if .Values.gitSync.proxy }}
+            - name: HTTP_PROXY
+              value: {{ .Values.gitSync.proxy | quote }}
+            - name: HTTPS_PROXY
+              value: {{ .Values.gitSync.proxy | quote }}
+            {{- end }}
             {{- if .Values.gitSync.sshKey }}
             - name: GIT_SSH_COMMAND
-              value: ssh -o StrictHostKeyChecking=no -i /etc/ssh-key/ssh-private-key
+              value: ssh -o StrictHostKeyChecking=no -i /etc/git-secret/ssh-private-key
             {{- end }}
           volumeMounts:
             - name: wiki-data
               mountPath: /wiki
             {{- if .Values.gitSync.sshKey }}
             - name: git-ssh-key
-              mountPath: /etc/ssh-key
+              mountPath: /etc/git-secret
             {{- end }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+        {{- else }}
+        - name: init-wiki
+          image: "{{ .Values.wiki.image.repository }}:{{ .Values.wiki.image.tag }}"
+          imagePullPolicy: {{ .Values.wiki.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              if [ -f /wiki/tiddlywiki.info ]; then
+                echo "[init-wiki] Wiki data exists (tiddlywiki.info found)"
+              elif [ -d /wiki/tiddlers ]; then
+                echo "[init-wiki] Wiki data exists (tiddlers/ found)"
+              else
+                echo "[init-wiki] Empty wiki volume, creating default wiki..."
+                rm -rf /wiki/* /wiki/.[!.]* /wiki/..?* 2>/dev/null || true
+                tiddlywiki /wiki --init server && echo "[init-wiki] Default wiki created" || echo "[init-wiki] Init failed"
+              fi
+          volumeMounts:
+            - name: wiki-data
+              mountPath: /wiki
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
         {{- end }}
       containers:
         {{- if .Values.gitSync.enabled }}
         - name: git-sync
-          image: {{ .Values.gitSync.image.repository }}:{{ .Values.gitSync.image.tag }}
+          image: "{{ .Values.gitSync.image.repository }}:{{ .Values.gitSync.image.tag }}"
           imagePullPolicy: {{ .Values.gitSync.image.pullPolicy }}
           command:
-            - /git-sync
-          args:
-            - --repo={{ .Values.gitSync.repo }}
-            - --branch={{ .Values.gitSync.branch }}
-            - --root=/tmp/git
-            - --dest=/wiki
-            - --wait={{ .Values.gitSync.interval }}
-            - --one-time=false
-            - --link=.
+            - sh
+            - -c
+            - |
+              while true; do
+                echo "[git-sync] Pulling from {{ .Values.gitSync.repo }}..."
+                if [ -d /wiki/.git ]; then
+                  cd /wiki
+                  git fetch origin {{ .Values.gitSync.branch }}
+                  git reset --hard "origin/{{ .Values.gitSync.branch }}"
+                  echo "[git-sync] Updated to latest {{ .Values.gitSync.branch }}"
+                else
+                  echo "[git-sync] No git repo in /wiki, waiting for git-clone init..."
+                fi
+                echo "[git-sync] Sleep {{ .Values.gitSync.interval }}s..."
+                sleep {{ .Values.gitSync.interval }}
+              done
           env:
+            {{- if .Values.gitSync.proxy }}
+            - name: HTTP_PROXY
+              value: {{ .Values.gitSync.proxy | quote }}
+            - name: HTTPS_PROXY
+              value: {{ .Values.gitSync.proxy | quote }}
+            {{- end }}
             {{- if .Values.gitSync.sshKey }}
-            - name: GIT_SSH_KEY_FILE
-              value: /etc/git-secret/ssh-private-key
+            - name: GIT_SSH_COMMAND
+              value: ssh -o StrictHostKeyChecking=no -i /etc/git-secret/ssh-private-key
             {{- end }}
           volumeMounts:
             - name: wiki-data
               mountPath: /wiki
-            - name: restart-signal
-              mountPath: /tmp/restart
             {{- if .Values.gitSync.sshKey }}
             - name: git-ssh-key
               mountPath: /etc/git-secret
@@ -117,7 +190,11 @@ spec:
               name: http
           env:
             - name: WIKI_PATH
+              {{- if .Values.gitSync.subPath }}
+              value: /wiki/{{ .Values.gitSync.subPath }}
+              {{- else }}
               value: /wiki
+              {{- end }}
             - name: PORT
               value: "{{ .Values.wiki.port }}"
             - name: HOST

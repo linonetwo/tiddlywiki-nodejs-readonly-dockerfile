@@ -16,7 +16,8 @@ docker run -p 8080:8080 -v /path/to/wiki:/wiki linonetwo/tiddlywiki-nodejs-reado
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WIKI_PATH` | `/wiki` | Path to the wiki folder |
+| `WIKI_PATH` | `/wiki` | Path to the wiki folder (repo root when using git subPath) |
+| `WIKI_SUBPATH` | `` | Subdirectory inside WIKI_PATH that contains tiddlywiki.info |
 | `PORT` | `8080` | Server port |
 | `HOST` | `0.0.0.0` | Bind address |
 | `ROOT_TIDDLER` | `$:/core/save/lazy-all` | Root tiddler for lazy loading |
