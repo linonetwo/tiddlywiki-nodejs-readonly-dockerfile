@@ -1,6 +1,6 @@
 FROM node:20-alpine AS builder
 
-WORKDIR /app
+WORKDIR /app  # ci
 
 # Install tiddlywiki and dependencies
 RUN apk add --no-cache git python3 make g++ && \
