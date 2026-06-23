@@ -1,6 +1,6 @@
 FROM node:20-alpine AS builder
 
-WORKDIR /app  # ci
+WORKDIR /app
 
 # Install tiddlywiki and dependencies
 RUN apk add --no-cache git python3 make g++ && \
@@ -30,3 +30,5 @@ VOLUME ["/wiki"]
 EXPOSE 8080
 
 ENTRYPOINT ["/entrypoint.sh"]
+
+# built by GitHub Actions
