@@ -39,7 +39,6 @@ if [ "$READ_ONLY_MODE" = "true" ]; then
     echo "Admin password: $PASSWORD"
 
     set -- tiddlywiki \
-        +plugins/tiddlywiki/filesystem \
         +plugins/tiddlywiki/tiddlyweb \
         "$WIKI_PATH" \
         --listen \
@@ -58,7 +57,6 @@ if [ "$READ_ONLY_MODE" = "true" ]; then
     fi
 else
     set -- tiddlywiki \
-        +plugins/tiddlywiki/filesystem \
         +plugins/tiddlywiki/tiddlyweb \
         "$WIKI_PATH" \
         --listen \
@@ -69,7 +67,7 @@ else
 fi
 
 echo ""
-echo "Starting TiddlyWiki with plugins: filesystem, tiddlyweb"
+echo "Starting TiddlyWiki with plugin: tiddlyweb"
 echo "  $*"
 echo ""
 
