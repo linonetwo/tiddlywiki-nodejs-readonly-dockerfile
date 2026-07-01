@@ -67,7 +67,7 @@ persistence:
   # -- Enable persistent storage
   enabled: true
   # -- Storage class
-  storageClass: "longhorn"
+  storageClass: "longhorn-poor"
   # -- Storage size
   size: 1Gi
   # -- Access mode

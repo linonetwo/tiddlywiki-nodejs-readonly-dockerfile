@@ -44,7 +44,7 @@ spec:
         {{- end }}
       initContainers:
         {{- if .Values.gitSync.enabled }}
-        - name: git-clone
+        - name: git-init
           image: "{{ .Values.gitSync.image.repository }}:{{ .Values.gitSync.image.tag }}"
           imagePullPolicy: {{ .Values.gitSync.image.pullPolicy }}
           command:
@@ -72,24 +72,21 @@ spec:
               }
 
               if [ -d "$WIKI_DIR/.git" ]; then
-                echo "[git-clone] Repo exists, pulling latest..."
-                cd "$WIKI_DIR"
-                git fetch origin {{ .Values.gitSync.branch }}
-                git reset --hard "origin/{{ .Values.gitSync.branch }}"
+                echo "[git-init] Git repo already on PVC, skip clone (updates via git-sync sidecar)"
               elif needs_clone; then
-                echo "[git-clone] Cloning {{ .Values.gitSync.repo }}..."
+                echo "[git-init] First clone {{ .Values.gitSync.repo }} onto PVC..."
                 rm -rf "$WIKI_DIR"/* "$WIKI_DIR"/.[!.]* "$WIKI_DIR"/..?* 2>/dev/null || true
                 git clone --depth 1 --branch {{ .Values.gitSync.branch }} \
                   {{ .Values.gitSync.repo }} "$WIKI_DIR"
               else
-                echo "[git-clone] Wiki data exists without git metadata, skipping clone"
+                echo "[git-init] Wiki data exists without git metadata, skipping clone"
               fi
 
               if [ ! -f "$CONTENT_DIR/tiddlywiki.info" ] && [ ! -d "$CONTENT_DIR/tiddlers" ]; then
-                echo "[git-clone] ERROR: wiki content not found at $CONTENT_DIR"
+                echo "[git-init] ERROR: wiki content not found at $CONTENT_DIR"
                 exit 1
               fi
-              echo "[git-clone] Wiki ready at $CONTENT_DIR"
+              echo "[git-init] Wiki ready at $CONTENT_DIR"
           env:
             {{- if .Values.gitSync.proxy }}
             - name: HTTP_PROXY
@@ -154,7 +151,7 @@ spec:
                   git reset --hard "origin/{{ .Values.gitSync.branch }}"
                   echo "[git-sync] Updated to latest {{ .Values.gitSync.branch }}"
                 else
-                  echo "[git-sync] No git repo in /wiki, waiting for git-clone init..."
+                  echo "[git-sync] No git repo in /wiki, waiting for git-init..."
                 fi
                 echo "[git-sync] Sleep {{ .Values.gitSync.interval }}s..."
                 sleep {{ .Values.gitSync.interval }}
