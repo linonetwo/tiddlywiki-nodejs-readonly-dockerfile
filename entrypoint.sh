@@ -13,6 +13,7 @@ PORT="${PORT:-8080}"
 HOST="${HOST:-0.0.0.0}"
 ROOT_TIDDLER="${ROOT_TIDDLER:-\$:/core/save/lazy-all}"
 READ_ONLY_MODE="${READ_ONLY_MODE:-true}"
+GZIP="${GZIP:-yes}"
 NODE_ENV="${NODE_ENV:-production}"
 TW_PLUGIN_PATH="${TIDDLYWIKI_PLUGIN_PATH:-/usr/local/lib/node_modules/tiddlywiki/plugins}"
 
@@ -45,7 +46,7 @@ if [ "$READ_ONLY_MODE" = "true" ]; then
         "port=$PORT" \
         "host=$HOST" \
         "root-tiddler=$ROOT_TIDDLER" \
-        "gzip=yes" \
+        "gzip=$GZIP" \
         "readers=$READERS" \
         "writers=$WRITERS" \
         "username=$USERNAME" \
