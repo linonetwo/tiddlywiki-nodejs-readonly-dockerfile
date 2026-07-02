@@ -14,6 +14,7 @@ HOST="${HOST:-0.0.0.0}"
 ROOT_TIDDLER="${ROOT_TIDDLER:-\$:/core/save/lazy-all}"
 READ_ONLY_MODE="${READ_ONLY_MODE:-true}"
 GZIP="${GZIP:-yes}"
+ETAGS="${ETAGS:-yes}"
 NODE_ENV="${NODE_ENV:-production}"
 TW_PLUGIN_PATH="${TIDDLYWIKI_PLUGIN_PATH:-/usr/local/lib/node_modules/tiddlywiki/plugins}"
 
@@ -29,6 +30,7 @@ echo "Port: $PORT"
 echo "Host: $HOST"
 echo "Read-only: $READ_ONLY_MODE"
 echo "Root tiddler: $ROOT_TIDDLER"
+echo "ETags enabled: $ETAGS"
 echo "Plugin path: $TW_PLUGIN_PATH"
 
 if [ "$READ_ONLY_MODE" = "true" ]; then
@@ -47,6 +49,7 @@ if [ "$READ_ONLY_MODE" = "true" ]; then
         "host=$HOST" \
         "root-tiddler=$ROOT_TIDDLER" \
         "gzip=$GZIP" \
+        "etags=$ETAGS" \
         "readers=$READERS" \
         "writers=$WRITERS" \
         "username=$USERNAME" \
@@ -64,6 +67,7 @@ else
         "port=$PORT" \
         "host=$HOST" \
         "root-tiddler=$ROOT_TIDDLER" \
+        "etags=$ETAGS" \
         "credentials=false"
 fi
 
