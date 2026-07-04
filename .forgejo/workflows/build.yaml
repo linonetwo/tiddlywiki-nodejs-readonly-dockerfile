@@ -1,5 +1,6 @@
 name: Build and Push to Harbor
 
+# Trigger: push to master changes Dockerfile/entrypoint/this workflow, or manual dispatch
 on:
   push:
     branches: [master]
