@@ -13,14 +13,31 @@ jobs:
   build-and-push:
     runs-on: docker
     steps:
+      - name: Debug env
+        run: |
+          echo "=== Environment ==="
+          echo "HARBOR_USER=$HARBOR_USER"
+          echo "Workspace: $(pwd)"
+          echo "Files:"
+          ls -la
+          echo "Kaniko:"
+          ls -la /kaniko/executor 2>&1
+          echo "Shell:"
+          readlink /proc/$$/exe 2>/dev/null || echo "/bin/sh"
+          echo "base64 check:"
+          which base64 2>&1 || which openssl 2>&1 || echo "no base64 found"
+          echo "=== Done ==="
+        env:
+          HARBOR_USER: ${{ secrets.HARBOR_USER }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+
       - name: Build and push with Kaniko
         run: |
           VERSION=$(date +%Y%m%d-%H%M%S)
           echo "Building version $VERSION"
-          # Auth for pushing to Harbor
           mkdir -p /kaniko/.docker
-          echo "{\"auths\":{\"harbor.k3s.onetwo.website\":{\"auth\":\"$(echo -n $HARBOR_USER:$HARBOR_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
-          # Build & push with Kaniko (no Docker daemon needed)
+          AUTH=$(printf "%s:%s" "$HARBOR_USER" "$HARBOR_PASSWORD" | openssl base64 -A 2>/dev/null || printf "%s:%s" "$HARBOR_USER" "$HARBOR_PASSWORD" | base64 2>/dev/null)
+          printf '{"auths":{"harbor.k3s.onetwo.website":{"auth":"%s"}}}\n' "$AUTH" > /kaniko/.docker/config.json
           /kaniko/executor \
             --context dir:///workspace/lindongwu/tiddlywiki-nodejs-readonly-dockerfile \
             --dockerfile Dockerfile \
