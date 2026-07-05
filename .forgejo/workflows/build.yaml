@@ -13,29 +13,26 @@ jobs:
   build-and-push:
     runs-on: docker
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Login to Harbor
-        uses: actions/login-action@v3
-        with:
-          registry: harbor.k3s.onetwo.website
-          username: ${{ secrets.HARBOR_USER }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Generate image tags
-        id: meta
+      - name: Build and push with Kaniko
         run: |
           VERSION=$(date +%Y%m%d-%H%M%S)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Build and push
-        uses: actions/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:${{ steps.meta.outputs.version }}
-            harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest
-          cache-from: type=registry,ref=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest
-          cache-to: type=inline
+          echo "Building version $VERSION"
+          # Auth for Harbor push AND mirror pull (Basic Auth avoids Bearer scope issue)
+          mkdir -p /kaniko/.docker
+          AUTH=$(printf "%s:%s" "$HARBOR_USER" "$HARBOR_PASSWORD" | base64)
+          printf '{"auths":{"harbor.k3s.onetwo.website":{"auth":"%s"},"harbor-docker-io.k3s.onetwo.website":{"auth":"%s"}}}\n' "$AUTH" "$AUTH" > /kaniko/.docker/config.json
+          /kaniko/executor \
+            --context "dir:///workspace/lindongwu/tiddlywiki-nodejs-readonly-dockerfile" \
+            --dockerfile Dockerfile \
+            --destination "harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION" \
+            --destination harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest \
+            --registry-mirror=harbor-docker-io.k3s.onetwo.website \
+            --cache=true \
+            --cache-repo=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly-cache \
+            --cache-copy-layers \
+            --cleanup \
+            --verbosity=info
+          echo "Pushed: $VERSION"
+        env:
+          HARBOR_USER: ${{ secrets.HARBOR_USER }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
