@@ -1,6 +1,5 @@
 name: Build and Push to Harbor
 
-# Trigger: push to master changes Dockerfile/entrypoint/this workflow, or manual dispatch
 on:
   push:
     branches: [master]
@@ -14,13 +13,29 @@ jobs:
   build-and-push:
     runs-on: docker
     steps:
-      - name: Build and push to Harbor
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Harbor
+        uses: actions/login-action@v3
+        with:
+          registry: harbor.k3s.onetwo.website
+          username: ${{ secrets.HARBOR_USER }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Generate image tags
+        id: meta
         run: |
-          set -e
           VERSION=$(date +%Y%m%d-%H%M%S)
-          echo "Building version $VERSION"
-          docker build -t harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION .
-          docker tag harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest
-          docker push harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION
-          docker push harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest
-          echo "Pushed version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build and push
+        uses: actions/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:${{ steps.meta.outputs.version }}
+            harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest
+          cache-from: type=registry,ref=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest
+          cache-to: type=inline
