@@ -13,13 +13,4 @@ jobs:
   build-and-push:
     runs-on: docker
     steps:
-      - run: |
-          echo "USER=$HARBOR_USER"
-          echo "PWD_LEN=${#HARBOR_PASSWORD}"
-          echo "pwd=$(pwd)"
-          ls -la kaniko-build.sh
-          chmod +x kaniko-build.sh
-          ./kaniko-build.sh
-        env:
-          HARBOR_USER: ${{ secrets.HARBOR_USER }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+      - run: echo "hello from kaniko container"
