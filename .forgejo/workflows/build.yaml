@@ -4,16 +4,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  build-and-push:
     runs-on: docker
     steps:
-      - run: |
-          echo "step1: checking script"
-          ls -la kaniko-build.sh
-          chmod +x kaniko-build.sh
-          echo "step2: running script"
-          ./kaniko-build.sh
-          echo "step3: done"
+      - name: Build and push with Kaniko
+        run: |
+          VERSION=$(date +%Y%m%d-%H%M%S)
+          echo "Building version $VERSION"
+          mkdir -p /kaniko/.docker
+          AUTH=$(printf "%s:%s" "$HARBOR_USER" "$HARBOR_PASSWORD" | base64)
+          printf '{"auths":{"harbor.k3s.onetwo.website":{"auth":"%s"}}}\n' "$AUTH" > /kaniko/.docker/config.json
+          /kaniko/executor --context git://forgejo-http.forgejo.svc.cluster.local:3000/lindongwu/tiddlywiki-nodejs-readonly-dockerfile.git#master --dockerfile Dockerfile --destination "harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION" --destination harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest --registry-mirror=harbor-docker-io.k3s.onetwo.website --cache=true --cache-repo=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly-cache --cache-copy-layers --cleanup --verbosity=info
+          echo "Pushed: $VERSION"
         env:
           HARBOR_USER: ${{ secrets.HARBOR_USER }}
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
