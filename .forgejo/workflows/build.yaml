@@ -17,18 +17,21 @@ jobs:
         run: |
           VERSION=$(date +%Y%m%d-%H%M%S)
           echo "Building version $VERSION"
+          # Auth for pushing to Harbor
           mkdir -p /kaniko/.docker
-          echo "{"auths":{"harbor.k3s.onetwo.website":{"auth":"$(echo -n $HARBOR_USER:$HARBOR_PASSWORD | base64)"}}}" > /kaniko/.docker/config.json
+          echo "{\"auths\":{\"harbor.k3s.onetwo.website\":{\"auth\":\"$(echo -n $HARBOR_USER:$HARBOR_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
+          # Build & push with Kaniko (no Docker daemon needed)
           /kaniko/executor \
             --context dir:///workspace/lindongwu/tiddlywiki-nodejs-readonly-dockerfile \
             --dockerfile Dockerfile \
-            --destination harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION \
+            --destination "harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION" \
             --destination harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest \
             --registry-mirror=harbor-docker-io.k3s.onetwo.website \
             --cache=true \
             --cache-repo=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly-cache \
             --cache-copy-layers \
-            --cleanup
+            --cleanup \
+            --verbosity=info
           echo "Pushed version: $VERSION"
         env:
           HARBOR_USER: ${{ secrets.HARBOR_USER }}
