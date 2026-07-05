@@ -1,16 +1,41 @@
 name: Build and Push to Harbor
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - "Dockerfile"
+      - "entrypoint.sh"
+      - ".forgejo/workflows/build.yaml"
   workflow_dispatch:
 
 jobs:
-  test:
+  build-and-push:
     runs-on: docker
     steps:
-      - run: |
-          echo "=== test ==="
-          ls -la
-          ls -la kaniko-build.sh 2>&1
-          ls /kaniko/executor 2>&1
-          which base64
-          echo "workspace ok"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Harbor
+        uses: actions/login-action@v3
+        with:
+          registry: harbor.k3s.onetwo.website
+          username: ${{ secrets.HARBOR_USER }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Generate image tags
+        id: meta
+        run: |
+          VERSION=$(date +%Y%m%d-%H%M%S)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build and push
+        uses: actions/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:${{ steps.meta.outputs.version }}
+            harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest
+          cache-from: type=registry,ref=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest
+          cache-to: type=inline
