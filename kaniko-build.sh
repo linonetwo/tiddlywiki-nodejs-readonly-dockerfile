@@ -8,5 +8,5 @@ AUTH=$(printf "%s:%s" "$HARBOR_USER" "$HARBOR_PASSWORD" | base64)
 printf '{"auths":{"harbor.k3s.onetwo.website":{"auth":"%s"},"harbor-docker-io.k3s.onetwo.website":{"auth":"%s"}}}\n' "$AUTH" "$AUTH" > /kaniko/.docker/config.json
 
 echo "=== Starting Kaniko ==="
-/kaniko/executor --context dir:///workspace/lindongwu/tiddlywiki-nodejs-readonly-dockerfile --dockerfile Dockerfile --destination "harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION" --destination harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest --registry-mirror=http://harbor-docker-io.k3s.onetwo.website --cache=true --cache-repo=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly-cache --cache-copy-layers --cleanup --verbosity=info
+/kaniko/executor --context dir:///workspace/lindongwu/tiddlywiki-nodejs-readonly-dockerfile --dockerfile Dockerfile --destination "harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION" --destination harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest --registry-map="docker.io=http://harbor-docker-io.k3s.onetwo.website" --skip-tls-verify-registry=harbor-docker-io.k3s.onetwo.website --cache=true --cache-repo=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly-cache --cache-copy-layers --cleanup --verbosity=info
 echo "Pushed version: $VERSION"
