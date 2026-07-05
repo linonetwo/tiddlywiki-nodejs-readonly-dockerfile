@@ -37,5 +37,3 @@ jobs:
           tags: |
             harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:${{ steps.meta.outputs.version }}
             harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest
-          cache-from: type=registry,ref=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest
-          cache-to: type=inline
