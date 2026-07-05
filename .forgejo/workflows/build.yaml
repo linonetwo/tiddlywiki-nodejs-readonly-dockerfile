@@ -1,20 +1,39 @@
 name: Build and Push to Harbor
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - "Dockerfile"
+      - "entrypoint.sh"
+      - ".forgejo/workflows/build.yaml"
   workflow_dispatch:
 
 jobs:
-  test:
+  build-and-push:
     runs-on: docker
     steps:
-      - run: |
-          echo "hello world"
-          echo "HARBOR_USER=$HARBOR_USER"
-          echo "Files:"
-          ls -la
-          echo "Kaniko:"
-          ls -la /kaniko/executor 2>&1
-          echo "whoami: $(whoami)"
-          echo "pwd: $(pwd)"
+      - name: Build and push with Kaniko
+        run: |
+          VERSION=$(date +%Y%m%d-%H%M%S)
+          echo "Building version $VERSION"
+          # Auth for pushing to Harbor
+          mkdir -p /kaniko/.docker
+          AUTH=$(printf "%s:%s" "$HARBOR_USER" "$HARBOR_PASSWORD" | base64 2>/dev/null || printf "%s:%s" "$HARBOR_USER" "$HARBOR_PASSWORD" | openssl base64 -A 2>/dev/null)
+          printf '{"auths":{"harbor.k3s.onetwo.website":{"auth":"%s"}}}\n' "$AUTH" > /kaniko/.docker/config.json
+          echo "=== Starting Kaniko ==="
+          /kaniko/executor \
+            --context dir:///workspace/lindongwu/tiddlywiki-nodejs-readonly-dockerfile \
+            --dockerfile Dockerfile \
+            --destination "harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION" \
+            --destination harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest \
+            --registry-mirror=harbor-docker-io.k3s.onetwo.website \
+            --cache=true \
+            --cache-repo=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly-cache \
+            --cache-copy-layers \
+            --cleanup \
+            --verbosity=info
+          echo "Pushed version: $VERSION"
         env:
           HARBOR_USER: ${{ secrets.HARBOR_USER }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
