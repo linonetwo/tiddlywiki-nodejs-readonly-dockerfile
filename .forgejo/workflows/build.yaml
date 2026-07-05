@@ -7,4 +7,14 @@ jobs:
   test:
     runs-on: docker
     steps:
-      - run: echo "hello world"
+      - run: |
+          echo "hello world"
+          echo "HARBOR_USER=$HARBOR_USER"
+          echo "Files:"
+          ls -la
+          echo "Kaniko:"
+          ls -la /kaniko/executor 2>&1
+          echo "whoami: $(whoami)"
+          echo "pwd: $(pwd)"
+        env:
+          HARBOR_USER: ${{ secrets.HARBOR_USER }}
