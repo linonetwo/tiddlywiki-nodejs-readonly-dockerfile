@@ -13,15 +13,9 @@ jobs:
   build-and-push:
     runs-on: docker
     steps:
-      - name: Build and push with Kaniko
-        run: |
-          VERSION=$(date +%Y%m%d-%H%M%S)
-          echo "Building version $VERSION"
-          mkdir -p /kaniko/.docker
-          AUTH=$(printf "%s:%s" "$HARBOR_USER" "$HARBOR_PASSWORD" | base64)
-          printf '{"auths":{"harbor.k3s.onetwo.website":{"auth":"%s"},"harbor-docker-io.k3s.onetwo.website":{"auth":"%s"}}}\n' "$AUTH" "$AUTH" > /kaniko/.docker/config.json
-          /kaniko/executor --context "dir:///workspace/lindongwu/tiddlywiki-nodejs-readonly-dockerfile" --dockerfile Dockerfile --destination "harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION" --destination harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest --registry-mirror=harbor-docker-io.k3s.onetwo.website --cache=true --cache-repo=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly-cache --cache-copy-layers --cleanup --verbosity=info
-          echo "Pushed: $VERSION"
+      - run: |
+          chmod +x kaniko-build.sh
+          ./kaniko-build.sh
         env:
           HARBOR_USER: ${{ secrets.HARBOR_USER }}
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
