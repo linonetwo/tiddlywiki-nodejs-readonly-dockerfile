@@ -1,22 +1,16 @@
 name: Build and Push to Harbor
 
 on:
-  push:
-    branches: [master]
-    paths:
-      - "Dockerfile"
-      - "entrypoint.sh"
-      - ".forgejo/workflows/build.yaml"
   workflow_dispatch:
 
 jobs:
-  build-and-push:
+  test:
     runs-on: docker
     steps:
-      - name: Build and push with Kaniko
-        run: |
-          chmod +x kaniko-build.sh
-          ./kaniko-build.sh
-        env:
-          HARBOR_USER: ${{ secrets.HARBOR_USER }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+      - run: |
+          echo "=== test ==="
+          ls -la
+          ls -la kaniko-build.sh 2>&1
+          ls /kaniko/executor 2>&1
+          which base64
+          echo "workspace ok"
