@@ -7,7 +7,7 @@ RUN apk add --no-cache git python3 make g++ && \
     npm install -g npm@latest
 
 # Install tiddlywiki from npm (official release)
-RUN npm install tiddlywiki@5.3.6
+RUN npm install tiddlywiki@5.4.1
 
 # Copy startup script
 COPY entrypoint.sh /entrypoint.sh
