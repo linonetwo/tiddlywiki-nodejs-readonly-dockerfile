@@ -40,7 +40,6 @@ jobs:
             --context="${ROOT}" \
             --dockerfile=Dockerfile.mws \
             --destination="${HARBOR_HOST}/library/multiwikiserver:${TAG}" \
-            --destination="${HARBOR_HOST}/library/multiwikiserver:0.2.2" \
             --cache=true --cache-repo="${HARBOR_HOST}/library/cache" \
             --log-timestamp \
             --image-download-retry=5 \
@@ -49,5 +48,4 @@ jobs:
             --registry-map=ghcr.io="${HARBOR_PULL_HOST}"/ghcr-io \
             --registry-map=registry.k8s.io="${HARBOR_PULL_HOST}"/k8s-io \
             --registry-map=quay.io="${HARBOR_PULL_HOST}"/quay-io
-          echo "pushed multiwikiserver:${TAG}"
-          echo "pushed multiwikiserver:0.2.2"
+          echo "pushed multiwikikiserver:${TAG}"
