@@ -18,20 +18,19 @@ jobs:
           fetch-depth: 2
       - name: Build and push
         env:
-          FORGEJO_SHA: ${{ forgejo.sha }}
-          HARBOR_PASS: ${{ secrets.HARBOR_PASSWORD }}
+          HARBOR_USER: ${{ secrets.HARBOR_USER }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
         run: |
           set -eu
-          HARBOR_USER='robot$library+ci-push'
           if [ -x /opt/kaniko/executor ]; then KANIKO_BIN=/opt/kaniko/executor
           elif [ -x /kaniko/executor ]; then KANIKO_BIN=/kaniko/executor
           else echo "kaniko missing"; exit 1; fi
-          [ -z "${HARBOR_PASS:-}" ] && echo "HARBOR_PASS empty" && exit 1
+          [ -z "${HARBOR_PASSWORD:-}" ] && echo "HARBOR_PASSWORD empty" && exit 1
           mkdir -p /kaniko/.docker
-          AUTH=$(printf '%s' "${HARBOR_USER}:${HARBOR_PASS}" | base64 | tr -d '\n')
+          AUTH=$(printf '%s' "${HARBOR_USER}:${HARBOR_PASSWORD}" | base64 | tr -d '\n')
           export DOCKER_CONFIG=/kaniko/.docker
           printf '{"auths":{"harbor.k3s.onetwo.website":{"auth":"%s"}}}\n' "${AUTH}" > "${DOCKER_CONFIG}/config.json"
-          SHORT_SHA=$(echo "${FORGEJO_SHA:-unknown}" | cut -c1-7)
+          SHORT_SHA=$(echo "${FORGEJO_SHA:-${GITHUB_SHA:-unknown}}" | cut -c1-7)
           TAG=$(date +%Y%m%d)-${SHORT_SHA}
           "${KANIKO_BIN}" \
             --context="${GITHUB_WORKSPACE:-$PWD}" \
