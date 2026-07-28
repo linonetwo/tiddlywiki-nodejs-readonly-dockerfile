@@ -22,7 +22,7 @@ jobs:
           HARBOR_PASS: ${{ secrets.HARBOR_PASSWORD }}
         run: |
           set -eu
-          HARBOR_USER='robot$ci-push2'
+          HARBOR_USER='admin'
           if [ -z "${HARBOR_PASS:-}" ]; then echo "HARBOR_PASS empty"; exit 1; fi
           ROOT="${FORGEJO_WORKSPACE:-${GITHUB_WORKSPACE:-$PWD}}"
           if [ -x /opt/kaniko/executor ]; then KANIKO_BIN=/opt/kaniko/executor
