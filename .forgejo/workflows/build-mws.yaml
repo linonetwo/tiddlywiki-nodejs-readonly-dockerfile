@@ -23,9 +23,6 @@ jobs:
         run: |
           set -eu
           HARBOR_USER='robot$ci-push2'
-          if [ -x /opt/kaniko/executor ]; then KANIKO_BIN=/opt/kaniko/executor
-          elif [ -x /kaniko/executor ]; then KANIKO_BIN=/kaniko/executor
-          else echo "kaniko missing"; exit 1; fi
           if [ -z "${HARBOR_PASS:-}" ]; then echo "HARBOR_PASS empty"; exit 1; fi
           ROOT="${FORGEJO_WORKSPACE:-${GITHUB_WORKSPACE:-$PWD}}"
           mkdir -p /kaniko/.docker
@@ -36,7 +33,7 @@ jobs:
             "${HARBOR_HOST}" "${AUTH}" "${HARBOR_PULL_HOST}" "${AUTH}" > "${DOCKER_CONFIG}/config.json"
           SHORT_SHA=$(echo "${FORGEJO_SHA:-${GITHUB_SHA:-unknown}}" | cut -c1-7)
           TAG=$(date +%Y%m%d)-${SHORT_SHA}
-          "${KANIKO_BIN}" \
+          /kaniko/executor \
             --context="${ROOT}" \
             --dockerfile=Dockerfile.mws \
             --destination="${HARBOR_HOST}/library/multiwikiserver:${TAG}" \
@@ -44,7 +41,6 @@ jobs:
             --cache=true --cache-repo="${HARBOR_HOST}/library/cache" \
             --log-timestamp \
             --insecure --skip-tls-verify --insecure-registry="${HARBOR_HOST}" \
-            --image-download-retry=5 \
             --registry-map=index.docker.io="${HARBOR_PULL_HOST}"/docker-io \
             --registry-map=ghcr.io="${HARBOR_PULL_HOST}"/ghcr-io \
             --registry-map=registry.k8s.io="${HARBOR_PULL_HOST}"/k8s-io \
