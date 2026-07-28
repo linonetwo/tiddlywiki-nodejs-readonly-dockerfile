@@ -13,14 +13,34 @@ jobs:
   build-and-push:
     runs-on: docker
     steps:
-      - run: |
-          VERSION=$(date +%Y%m%d-%H%M%S)
-          echo "Building version $VERSION"
-          mkdir -p /kaniko/.docker
-          AUTH=$(printf "%s:%s" "$HARBOR_USER" "$HARBOR_PASSWORD" | base64)
-          printf '{"auths":{"harbor.k3s.onetwo.website":{"auth":"%s"},"harbor-docker-io.k3s.onetwo.website":{"auth":"%s"},"index.docker.io":{"auth":"%s"}}}\n' "$AUTH" "$AUTH" "$AUTH" > /kaniko/.docker/config.json
-          /kaniko/executor --context "git://forgejo-http.forgejo.svc.cluster.local:3000/lindongwu/tiddlywiki-nodejs-readonly-dockerfile.git#master" --dockerfile Dockerfile --destination "harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:$VERSION" --destination harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:latest --registry-map index.docker.io=harbor-docker-io.k3s.onetwo.website --skip-tls-verify-registry=harbor-docker-io.k3s.onetwo.website --cache=true --cache-repo=harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly-cache --cache-copy-layers --cleanup --verbosity=info
-          echo "Pushed version: $VERSION"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Build and push
         env:
-          HARBOR_USER: ${{ secrets.HARBOR_USER }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          FORGEJO_SHA: ${{ forgejo.sha }}
+          HARBOR_PASS: ${{ secrets.HARBOR_PASSWORD }}
+        run: |
+          set -eu
+          HARBOR_USER='robot$library+ci-push'
+          if [ -x /opt/kaniko/executor ]; then KANIKO_BIN=/opt/kaniko/executor
+          elif [ -x /kaniko/executor ]; then KANIKO_BIN=/kaniko/executor
+          else echo "kaniko missing"; exit 1; fi
+          [ -z "${HARBOR_PASS:-}" ] && echo "HARBOR_PASS empty" && exit 1
+          mkdir -p /kaniko/.docker
+          AUTH=$(printf '%s' "${HARBOR_USER}:${HARBOR_PASS}" | base64 | tr -d '\n')
+          export DOCKER_CONFIG=/kaniko/.docker
+          printf '{"auths":{"harbor.k3s.onetwo.website":{"auth":"%s"}}}\n' "${AUTH}" > "${DOCKER_CONFIG}/config.json"
+          SHORT_SHA=$(echo "${FORGEJO_SHA:-unknown}" | cut -c1-7)
+          TAG=$(date +%Y%m%d)-${SHORT_SHA}
+          "${KANIKO_BIN}" \
+            --context="${GITHUB_WORKSPACE:-$PWD}" \
+            --dockerfile=Dockerfile \
+            --destination="harbor.k3s.onetwo.website/library/tiddlywiki-nodejs-readonly:${TAG}" \
+            --cache=true --cache-repo="harbor.k3s.onetwo.website/library/cache" \
+            --skip-tls-verify \
+            --image-download-retry=5 \
+            --registry-map=index.docker.io=harbor.k3s.onetwo.website/docker-io \
+            --registry-map=ghcr.io=harbor.k3s.onetwo.website/ghcr-io \
+            --cleanup --verbosity=info
+          echo "Pushed version: ${TAG}"
