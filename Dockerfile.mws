@@ -8,9 +8,12 @@ ARG TW_VERSION=5.4.1
 
 RUN npm config set registry https://registry.npmjs.org
 
-RUN echo "{\"name\":\"@tiddlywiki/mws-instance\",\"private\":true,\"version\":\"0.2.0\",\"scripts\":{\"start\":\"mws listen --listener\"}}" > package.json \
+# better-sqlite3 needs native build tools
+RUN apk add --no-cache build-base python3 && \
+    echo "{\"name\":\"@tiddlywiki/mws-instance\",\"private\":true,\"version\":\"0.2.0\",\"scripts\":{\"start\":\"mws listen --listener\"}}" > package.json \
     && npm install --fetch-timeout=120000 --fetch-retries=5 \
-        "tiddlywiki@${TW_VERSION}" "@tiddlywiki/mws@${MWS_VERSION}"
+        "tiddlywiki@${TW_VERSION}" "@tiddlywiki/mws@${MWS_VERSION}" \
+    && apk del build-base python3
 
 RUN mkdir -p /data/store /data/cache
 
