@@ -1,0 +1,26 @@
+ARG NODE_VERSION=22.15.0-alpine3.21
+FROM harbor.k3s.onetwo.website/docker-io/library/node:${NODE_VERSION}
+
+WORKDIR /app
+
+ARG MWS_VERSION=0.2.2
+ARG TW_VERSION=5.4.1
+
+RUN npm config set registry https://registry.npmjs.org
+
+RUN echo '{"name":"@tiddlywiki/mws-instance","private":true,"version":"0.1.0","scripts":{"start":"mws listen --listener"}}' > package.json \
+    && npm install --fetch-timeout=120000 --fetch-retries=5 \
+        "tiddlywiki@${TW_VERSION}" "@tiddlywiki/mws@${MWS_VERSION}"
+
+RUN mkdir -p /data/store /data/cache
+
+EXPOSE 8080
+
+WORKDIR /data
+CMD ["sh", "-c", "\
+  cp -n /app/package.json /data/package.json 2>/dev/null; \
+  cp -n /app/package-lock.json /data/package-lock.json 2>/dev/null; \
+  rm -rf /data/node_modules; \
+  ln -sf /app/node_modules /data/node_modules; \
+  exec npx mws listen --listener host=0.0.0.0 port=8080 \
+"]

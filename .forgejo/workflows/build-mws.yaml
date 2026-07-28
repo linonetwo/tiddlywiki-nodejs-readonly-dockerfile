@@ -1,0 +1,53 @@
+name: Build and Push MultiWikiServer to Harbor
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "Dockerfile.mws"
+      - ".forgejo/workflows/build-mws.yaml"
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: docker
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Build and push MultiWikiServer
+        env:
+          HARBOR_HOST: harbor-core.harbor.svc.cluster.local
+          HARBOR_PULL_HOST: harbor-core.harbor.svc.cluster.local
+          HARBOR_PASS: ${{ secrets.HARBOR_PASSWORD }}
+        run: |
+          set -eu
+          HARBOR_USER='robot$ci-push2'
+          if [ -x /opt/kaniko/executor ]; then KANIKO_BIN=/opt/kaniko/executor
+          elif [ -x /kaniko/executor ]; then KANIKO_BIN=/kaniko/executor
+          else echo "kaniko missing"; exit 1; fi
+          if [ -z "${HARBOR_PASS:-}" ]; then echo "HARBOR_PASS empty"; exit 1; fi
+          ROOT="${FORGEJO_WORKSPACE:-${GITHUB_WORKSPACE:-$PWD}}"
+          mkdir -p /kaniko/.docker
+          AUTH=$(printf '%s' "${HARBOR_USER}:${HARBOR_PASS}" | base64 | tr -d '\n')
+          export DOCKER_CONFIG=/kaniko/.docker
+          mkdir -p "$DOCKER_CONFIG"
+          printf '{"auths":{"%s":{"auth":"%s"},"%s":{"auth":"%s"}}}\n' \
+            "${HARBOR_HOST}" "${AUTH}" "${HARBOR_PULL_HOST}" "${AUTH}" > "${DOCKER_CONFIG}/config.json"
+          SHORT_SHA=$(echo "${FORGEJO_SHA:-${GITHUB_SHA:-unknown}}" | cut -c1-7)
+          TAG=$(date +%Y%m%d)-${SHORT_SHA}
+          "${KANIKO_BIN}" \
+            --context="${ROOT}" \
+            --dockerfile=Dockerfile.mws \
+            --destination="${HARBOR_HOST}/library/multiwikiserver:${TAG}" \
+            --destination="${HARBOR_HOST}/library/multiwikiserver:0.2.2" \
+            --cache=true --cache-repo="${HARBOR_HOST}/library/cache" \
+            --log-timestamp \
+            --insecure --skip-tls-verify --insecure-registry="${HARBOR_HOST}" \
+            --image-download-retry=5 \
+            --registry-map=index.docker.io="${HARBOR_PULL_HOST}"/docker-io \
+            --registry-map=ghcr.io="${HARBOR_PULL_HOST}"/ghcr-io \
+            --registry-map=registry.k8s.io="${HARBOR_PULL_HOST}"/k8s-io \
+            --registry-map=quay.io="${HARBOR_PULL_HOST}"/quay-io
+          echo "pushed multiwikiserver:${TAG}"
+          echo "pushed multiwikiserver:0.2.2"
