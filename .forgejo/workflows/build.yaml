@@ -31,7 +31,7 @@ jobs:
           export DOCKER_CONFIG=/kaniko/.docker
           printf '{"auths":{"harbor.k3s.onetwo.website":{"auth":"%s"}}}\n' "${AUTH}" > "${DOCKER_CONFIG}/config.json"
           SHORT_SHA=$(echo "${FORGEJO_SHA:-${GITHUB_SHA:-unknown}}" | cut -c1-7)
-          TAG=$(date +%Y%m%d)-${SHORT_SHA}
+          TAG=sha-${SHORT_SHA}
           "${KANIKO_BIN}" \
             --context="${GITHUB_WORKSPACE:-$PWD}" \
             --dockerfile=Dockerfile \
