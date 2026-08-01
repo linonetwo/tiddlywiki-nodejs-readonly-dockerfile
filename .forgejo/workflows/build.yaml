@@ -26,6 +26,9 @@ jobs:
           elif [ -x /kaniko/executor ]; then KANIKO_BIN=/kaniko/executor
           else echo "kaniko missing"; exit 1; fi
           [ -z "${HARBOR_PASSWORD:-}" ] && echo "HARBOR_PASSWORD empty" && exit 1
+          if decoded=$(printf '%s' "${HARBOR_PASSWORD}" | base64 -d 2>/dev/null); then
+            HARBOR_PASSWORD="${decoded}"
+          fi
           mkdir -p /kaniko/.docker
           AUTH=$(printf '%s' "${HARBOR_USER}:${HARBOR_PASSWORD}" | base64 | tr -d '\n')
           export DOCKER_CONFIG=/kaniko/.docker
