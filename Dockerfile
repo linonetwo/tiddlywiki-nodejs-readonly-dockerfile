@@ -3,8 +3,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install tiddlywiki and dependencies
-RUN apk add --no-cache git python3 make g++ && \
-    npm install -g npm@latest
+RUN apk add --no-cache git
 
 # Install tiddlywiki from npm (official release)
 RUN npm install tiddlywiki@5.4.1
