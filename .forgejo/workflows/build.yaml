@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 2
       - name: Build and push
         env:
-          HARBOR_USER: ${{ secrets.HARBOR_USER }}
+          HARBOR_USER: 'robot$ci-push'
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
         run: |
           set -eu
