@@ -34,12 +34,17 @@ echo "Use browser cache: $USE_BROWSER_CACHE"
 echo "Plugin path: $TW_PLUGIN_PATH"
 
 if [ "$READ_ONLY_MODE" = "true" ]; then
-    USERNAME="${USERNAME:-admin}"
-    PASSWORD="${PASSWORD:-changeme}"
+    USERNAME="${USERNAME:-}"
+    if [ -z "${PASSWORD:-}" ]; then
+        PASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 64)"
+    fi
     READERS="(anon)"
     WRITERS="$USERNAME"
-    echo "Admin username: $USERNAME"
-    echo "Admin password: $PASSWORD"
+    if [ -n "$USERNAME" ]; then
+        echo "Writer account: configured"
+    else
+        echo "Writer account: disabled (anonymous read-only)"
+    fi
 
     set -- tiddlywiki \
         +plugins/tiddlywiki/tiddlyweb \
@@ -73,8 +78,6 @@ fi
 
 echo ""
 echo "Starting TiddlyWiki with plugin: tiddlyweb"
-echo "  $*"
 echo ""
 
 exec "$@"
-
