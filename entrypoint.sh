@@ -18,9 +18,9 @@ USE_BROWSER_CACHE="${USE_BROWSER_CACHE:-yes}"
 NODE_ENV="${NODE_ENV:-production}"
 TW_PLUGIN_PATH="${TIDDLYWIKI_PLUGIN_PATH:-/usr/local/lib/node_modules/tiddlywiki/plugins}"
 EXCLUDE_EDITING_PLUGINS="${EXCLUDE_EDITING_PLUGINS:-true}"
-DEFAULT_EXCLUDED_PLUGINS_FILTER='[prefix[$:/plugins/tiddlywiki/codemirror]] [[$:/plugins/oeyoews/tiddlywiki-codemirror-6]] [[$:/plugins/Gk0Wk/TW5-CodeMirror-Enhanced]] [[$:/plugins/tiddlywiki/prosemirror]] [[$:/plugins/linonetwo/tw-whiteboard]] [[$:/plugins/linonetwo/tw-calendar]]'
+DEFAULT_EXCLUDED_PLUGINS_FILTER='[prefix[$:/plugins/tiddlywiki/codemirror]] [[$:/plugins/oeyoews/tiddlywiki-codemirror-6]] [[$:/plugins/Gk0Wk/TW5-CodeMirror-Enhanced]] [[$:/plugins/tiddlywiki/prosemirror]] [[$:/plugins/linonetwo/tw-whiteboard]] [[$:/plugins/linonetwo/calendar]] [[$:/plugins/linonetwo/tw-calendar]]'
 EXCLUDED_PLUGINS_FILTER="${EXCLUDED_PLUGINS_FILTER:-$DEFAULT_EXCLUDED_PLUGINS_FILTER}"
-READONLY_PLUGINS_PATH="${READONLY_PLUGINS_PATH:-/tmp/tiddlywiki-readonly-plugins}"
+NODE_LAUNCHER_PATH="${NODE_LAUNCHER_PATH:-/start-nodejs-wiki.js}"
 
 export TIDDLYWIKI_PLUGIN_PATH="$TW_PLUGIN_PATH"
 
@@ -55,60 +55,13 @@ if [ "$READ_ONLY_MODE" = "true" ]; then
         echo "Writer account: configured"
     fi
 
-    EXCLUSION_PLUGIN_ENABLED="false"
-    LISTEN_ROOT_TIDDLER="$ROOT_TIDDLER"
-    if [ "$EXCLUDE_EDITING_PLUGINS" = "true" ] && [ -n "$EXCLUDED_PLUGINS_FILTER" ]; then
-        if [ "$ROOT_TIDDLER" = "\$:/core/save/lazy-all" ]; then
-            EXCLUSION_PLUGIN_PATH="$READONLY_PLUGINS_PATH/readonly/exclusions"
-            mkdir -p "$EXCLUSION_PLUGIN_PATH/tiddlers"
-            cat >"$EXCLUSION_PLUGIN_PATH/plugin.info" <<'EOF'
-{
-    "title": "$:/plugins/readonly/exclusions",
-    "description": "Exclude editing plugins from read-only HTML output",
-    "author": "TiddlyWiki Node.js Readonly Server",
-    "version": "1.0.0",
-    "core-version": ">=5.3.0",
-    "plugin-type": "plugin"
-}
-EOF
-            cat >"$EXCLUSION_PLUGIN_PATH/tiddlers/save-lazy-all.tid" <<'EOF'
-title: $:/plugins/readonly/exclusions/save-lazy-all
-
-\define saveTiddlerFilter()
-[is[system]] -[prefix[$:/state/popup/]] -[[$:/HistoryList]] -[[$:/boot/boot.css]] -[is[system]type[application/javascript]library[yes]] -[[$:/boot/boot.js]] -[[$:/boot/bootprefix.js]] -[has[plugin-type]field:platform[server]] [is[tiddler]type[application/javascript]] +[sort[title]] -[subfilter{$:/plugins/readonly/exclusions/filter}]
-\end
-\define skinnySaveTiddlerFilter()
-[!is[system]] -[type[application/javascript]]
-\end
-{{$:/core/templates/tiddlywiki5.html}}
-EOF
-            {
-                printf '%s\n\n' 'title: $:/plugins/readonly/exclusions/filter'
-                printf '%s\n' "$EXCLUDED_PLUGINS_FILTER"
-            } >"$EXCLUSION_PLUGIN_PATH/tiddlers/filter.tid"
-            TIDDLYWIKI_PLUGIN_PATH="$READONLY_PLUGINS_PATH:$TW_PLUGIN_PATH"
-            export TIDDLYWIKI_PLUGIN_PATH
-            LISTEN_ROOT_TIDDLER="\$:/plugins/readonly/exclusions/save-lazy-all"
-            EXCLUSION_PLUGIN_ENABLED="true"
-            echo "Editing plugin payloads: excluded from read-only HTML output"
-        else
-            echo "Editing plugin payloads: exclusion skipped for custom root tiddler"
-        fi
-    fi
-
-    set -- tiddlywiki \
-        +plugins/tiddlywiki/tiddlyweb
-
-    if [ "$EXCLUSION_PLUGIN_ENABLED" = "true" ]; then
-        set -- "$@" +plugins/readonly/exclusions
-    fi
-
-    set -- "$@" \
+    set -- node \
+        "$NODE_LAUNCHER_PATH" \
         "$WIKI_PATH" \
         --listen \
         "port=$PORT" \
         "host=$HOST" \
-        "root-tiddler=$LISTEN_ROOT_TIDDLER" \
+        "root-tiddler=$ROOT_TIDDLER" \
         "gzip=$GZIP" \
         "use-browser-cache=$USE_BROWSER_CACHE" \
         "readers=$READERS" \
@@ -120,9 +73,25 @@ EOF
         AUTH_HEADER="${AUTH_HEADER:-X-TidGI-Auth}"
         set -- "$@" "authenticated-user-header=$AUTH_HEADER" "readers=$USERNAME" "writers=$USERNAME"
     fi
+
+    if [ "$EXCLUDE_EDITING_PLUGINS" = "true" ] && [ -n "$EXCLUDED_PLUGINS_FILTER" ]; then
+        export EXCLUDED_PLUGINS_FILTER
+        set -- "$@" \
+            --setfield \
+            "$EXCLUDED_PLUGINS_FILTER" \
+            "text" \
+            "" \
+            "text/plain"
+        echo "Editing plugin payloads: excluded with TidGi --setfield arguments"
+    else
+        EXCLUDED_PLUGINS_FILTER=""
+        export EXCLUDED_PLUGINS_FILTER
+    fi
 else
-    set -- tiddlywiki \
-        +plugins/tiddlywiki/tiddlyweb \
+    EXCLUDED_PLUGINS_FILTER=""
+    export EXCLUDED_PLUGINS_FILTER
+    set -- node \
+        "$NODE_LAUNCHER_PATH" \
         "$WIKI_PATH" \
         --listen \
         "port=$PORT" \

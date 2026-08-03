@@ -10,6 +10,7 @@ RUN npm install tiddlywiki@5.4.1
 
 # Copy startup script
 COPY entrypoint.sh /entrypoint.sh
+COPY start-nodejs-wiki.js /start-nodejs-wiki.js
 RUN chmod +x /entrypoint.sh
 
 # Runtime stage
@@ -19,6 +20,7 @@ RUN apk add --no-cache tzdata ca-certificates git wget tar
 
 COPY --from=builder /app/node_modules /usr/local/lib/node_modules
 COPY --from=builder /entrypoint.sh /entrypoint.sh
+COPY --from=builder /start-nodejs-wiki.js /start-nodejs-wiki.js
 
 # Create symlink so tiddlywiki is in PATH
 RUN ln -s /usr/local/lib/node_modules/tiddlywiki/tiddlywiki.js /usr/local/bin/tiddlywiki
@@ -31,7 +33,6 @@ EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
 
 # built by GitHub Actions
-
 
 
 

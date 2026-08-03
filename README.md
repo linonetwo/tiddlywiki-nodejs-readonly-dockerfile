@@ -70,16 +70,24 @@ TiddlyWiki with `credentials=false`.
 
 ## Excluding editing plugins
 
-TidGi Desktop excludes editing plugins by clearing their in-memory payloads
-with `--setfield`. This image does not use that command because a wiki with the
-filesystem syncer can persist the cleared value back to the mounted wiki.
+The image uses the same command sequence as TidGi Desktop's
+`startNodeJSWiki.ts`. The exclusion filter is appended after `--listen`:
 
-Instead, the container loads a small temporary plugin that provides a variant
-of `$:/core/save/lazy-all`. Its `saveTiddlerFilter` removes matching plugin
-tiddlers only while generating the browser HTML. The source plugin tiddlers
-remain available to the server, and source `.tid` and `.json` files on the
-mounted wiki volume are never rewritten or deleted by the exclusion feature.
-The temporary plugin is created under `/tmp` for each container start.
+```text
+--setfield <excluded-plugin-filter> text "" text/plain
+```
+
+No temporary plugin, shadow tiddler, configuration tiddler, or replacement save
+template is created. The selected plugin payloads are cleared in the running
+wiki exactly as they are in TidGi Desktop.
+
+TidGi Desktop does not load its filesystem write adaptor in read-only mode. A
+server wiki may still explicitly list `tiddlywiki/filesystem` in
+`tiddlywiki.info`, so the Node launcher protects only the selected plugin
+titles from filesystem synchronization for the lifetime of the process. All
+other tiddlers continue to use the configured adaptor. This prevents the
+exclusion operation from rewriting source plugin files without changing its
+upstream rendering behavior.
 
 The default filter excludes these editing-heavy plugins:
 
@@ -88,6 +96,7 @@ The default filter excludes these editing-heavy plugins:
 - `Gk0Wk/TW5-CodeMirror-Enhanced`
 - TiddlyWiki ProseMirror
 - `linonetwo/tw-whiteboard`
+- `linonetwo/calendar`
 - `linonetwo/tw-calendar`
 
 Set `EXCLUDE_EDITING_PLUGINS=false` to serve every plugin. To replace the
@@ -100,9 +109,7 @@ docker run --rm -p 8080:8080 \
   linonetwo/tiddlywiki-nodejs-readonly
 ```
 
-Plugin exclusion is applied only when `READ_ONLY_MODE=true` and
-`ROOT_TIDDLER=$:/core/save/lazy-all`. A custom root tiddler is preserved, and
-the entrypoint logs that exclusion was skipped.
+Plugin exclusion is applied only when `READ_ONLY_MODE=true`.
 
 ## CI/CD
 

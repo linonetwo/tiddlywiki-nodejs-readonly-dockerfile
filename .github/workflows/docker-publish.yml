@@ -6,6 +6,7 @@ on:
     paths:
       - "Dockerfile"
       - "entrypoint.sh"
+      - "start-nodejs-wiki.js"
       - "tests/**"
       - ".github/workflows/docker-publish.yml"
   workflow_dispatch: # 允许手动触发
@@ -21,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Test entrypoint
-        run: sh tests/entrypoint.test.sh
+        run: sh tests/entrypoint.test.sh && node tests/start-nodejs-wiki.test.js
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
