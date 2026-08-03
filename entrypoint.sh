@@ -34,16 +34,20 @@ echo "Use browser cache: $USE_BROWSER_CACHE"
 echo "Plugin path: $TW_PLUGIN_PATH"
 
 if [ "$READ_ONLY_MODE" = "true" ]; then
-    USERNAME="${USERNAME:-}"
+    WRITER_ACCOUNT_GENERATED="false"
+    if [ -z "${USERNAME:-}" ]; then
+        USERNAME="readonly-$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)"
+        WRITER_ACCOUNT_GENERATED="true"
+    fi
     if [ -z "${PASSWORD:-}" ]; then
         PASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 64)"
     fi
     READERS="(anon)"
     WRITERS="$USERNAME"
-    if [ -n "$USERNAME" ]; then
-        echo "Writer account: configured"
+    if [ "$WRITER_ACCOUNT_GENERATED" = "true" ]; then
+        echo "Writer account: generated for read-only protection"
     else
-        echo "Writer account: disabled (anonymous read-only)"
+        echo "Writer account: configured"
     fi
 
     set -- tiddlywiki \

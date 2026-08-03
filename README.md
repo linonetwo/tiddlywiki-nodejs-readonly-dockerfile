@@ -22,8 +22,49 @@ docker run -p 8080:8080 -v /path/to/wiki:/wiki linonetwo/tiddlywiki-nodejs-reado
 | `HOST` | `0.0.0.0` | Bind address |
 | `ROOT_TIDDLER` | `$:/core/save/lazy-all` | Root tiddler for lazy loading |
 | `READ_ONLY_MODE` | `true` | Enable read-only with gzip |
-| `USERNAME` | `admin` | Admin username |
-| `PASSWORD` | `changeme` | Admin password |
+| `USERNAME` | Random `readonly-<24 chars>` | Writer username; generated per container start when omitted |
+| `PASSWORD` | Random 64 characters | Writer password; generated per container start when omitted |
+
+With `READ_ONLY_MODE=true`, anonymous users remain readers. Writing requires the
+configured credentials or the unreported random credentials generated at
+startup, so an instance without `USERNAME` and `PASSWORD` is safely read-only.
+
+## Why the default is read-only
+
+This follows the argument pattern used by TidGi Desktop's
+`startNodeJSWiki.ts`:
+
+```ts
+const readonlyArguments = readOnlyMode === true
+  ? [
+      'gzip=yes',
+      'readers=(anon)',
+      `writers=${userName || nanoid()}`,
+      `username=${userName}`,
+      `password=${nanoid()}`,
+    ]
+  : [];
+```
+
+The container passes the equivalent TiddlyWiki listen arguments:
+
+```text
+readers=(anon)
+writers=readonly-<random 24 characters>
+username=readonly-<same random 24 characters>
+password=<random 64 characters>
+```
+
+`readers=(anon)` permits public read requests. `writers` does not contain
+`(anon)`, so an anonymous request cannot save, rename, or delete a tiddler.
+When `USERNAME` and `PASSWORD` are omitted, the only writer account is generated
+at container startup and its credentials are neither logged nor exposed. Normal
+visitors therefore cannot authenticate as the generated writer, while the wiki
+remains publicly readable.
+
+Providing `USERNAME` and `PASSWORD` intentionally creates a known writer
+account. Setting `READ_ONLY_MODE=false` disables this protection and starts
+TiddlyWiki with `credentials=false`.
 
 ## CI/CD
 

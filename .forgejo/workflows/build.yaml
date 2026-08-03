@@ -6,6 +6,7 @@ on:
     paths:
       - "Dockerfile"
       - "entrypoint.sh"
+      - "tests/**"
       - ".forgejo/workflows/build.yaml"
   workflow_dispatch:
 
@@ -16,6 +17,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
+      - name: Test entrypoint
+        run: sh tests/entrypoint.test.sh
       - name: Build and push
         env:
           HARBOR_USER: 'robot$ci-push'
