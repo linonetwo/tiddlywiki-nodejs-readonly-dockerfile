@@ -18,7 +18,7 @@ USE_BROWSER_CACHE="${USE_BROWSER_CACHE:-yes}"
 NODE_ENV="${NODE_ENV:-production}"
 TW_PLUGIN_PATH="${TIDDLYWIKI_PLUGIN_PATH:-/usr/local/lib/node_modules/tiddlywiki/plugins}"
 EXCLUDE_EDITING_PLUGINS="${EXCLUDE_EDITING_PLUGINS:-true}"
-DEFAULT_EXCLUDED_PLUGINS_FILTER='[prefix[$:/plugins/tiddlywiki/codemirror]] [[$:/plugins/oeyoews/tiddlywiki-codemirror-6]] [[$:/plugins/Gk0Wk/TW5-CodeMirror-Enhanced]] [[$:/plugins/tiddlywiki/prosemirror]] [[$:/plugins/linonetwo/tw-whiteboard]] [[$:/plugins/linonetwo/calendar]] [[$:/plugins/linonetwo/tw-calendar]]'
+DEFAULT_EXCLUDED_PLUGINS_FILTER='[prefix[$:/plugins/tiddlywiki/codemirror]] [[$:/plugins/oeyoews/tiddlywiki-codemirror-6]] [[$:/plugins/Gk0Wk/TW5-CodeMirror-Enhanced]] [[$:/plugins/tiddlywiki/prosemirror]] [[$:/plugins/linonetwo/tw-whiteboard]] [[$:/plugins/linonetwo/calendar]] [[$:/plugins/linonetwo/tw-calendar]] [[$:/plugins/linonetwo/flow-chart]] [[$:/plugins/linonetwo/hyper-table]] [[$:/plugins/linonetwo/markdown-transformer]] [[$:/plugins/oeyoews/mermaid]] [[$:/plugins/linonetwo/super-tag]] [[$:/plugins/linonetwo/tw-react]]'
 EXCLUDED_PLUGINS_FILTER="${EXCLUDED_PLUGINS_FILTER:-$DEFAULT_EXCLUDED_PLUGINS_FILTER}"
 NODE_LAUNCHER_PATH="${NODE_LAUNCHER_PATH:-/start-nodejs-wiki.js}"
 

@@ -98,6 +98,12 @@ The default filter excludes these editing-heavy plugins:
 - `linonetwo/tw-whiteboard`
 - `linonetwo/calendar`
 - `linonetwo/tw-calendar`
+- `linonetwo/flow-chart`
+- `linonetwo/hyper-table`
+- `linonetwo/markdown-transformer`
+- `oeyoews/mermaid`
+- `linonetwo/super-tag`
+- `linonetwo/tw-react`
 
 Set `EXCLUDE_EDITING_PLUGINS=false` to serve every plugin. To replace the
 defaults, provide a complete TiddlyWiki filter:

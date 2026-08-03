@@ -53,6 +53,12 @@ grep -Fx -- '--setfield' "$TEST_DIR/random-1.args" >/dev/null
 grep -F -- '[prefix[$:/plugins/tiddlywiki/codemirror]]' "$TEST_DIR/random-1.args" >/dev/null
 grep -F -- '[[$:/plugins/linonetwo/calendar]]' "$TEST_DIR/random-1.args" >/dev/null
 grep -F -- '[[$:/plugins/linonetwo/tw-calendar]]' "$TEST_DIR/random-1.args" >/dev/null
+grep -F -- '[[$:/plugins/linonetwo/flow-chart]]' "$TEST_DIR/random-1.args" >/dev/null
+grep -F -- '[[$:/plugins/linonetwo/hyper-table]]' "$TEST_DIR/random-1.args" >/dev/null
+grep -F -- '[[$:/plugins/linonetwo/markdown-transformer]]' "$TEST_DIR/random-1.args" >/dev/null
+grep -F -- '[[$:/plugins/oeyoews/mermaid]]' "$TEST_DIR/random-1.args" >/dev/null
+grep -F -- '[[$:/plugins/linonetwo/super-tag]]' "$TEST_DIR/random-1.args" >/dev/null
+grep -F -- '[[$:/plugins/linonetwo/tw-react]]' "$TEST_DIR/random-1.args" >/dev/null
 listen_line="$(grep -n -Fx -- '--listen' "$TEST_DIR/random-1.args" | cut -d: -f1)"
 setfield_line="$(grep -n -Fx -- '--setfield' "$TEST_DIR/random-1.args" | cut -d: -f1)"
 [ "$listen_line" -lt "$setfield_line" ]
