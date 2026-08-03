@@ -24,6 +24,8 @@ docker run -p 8080:8080 -v /path/to/wiki:/wiki linonetwo/tiddlywiki-nodejs-reado
 | `READ_ONLY_MODE` | `true` | Enable read-only with gzip |
 | `USERNAME` | Random `readonly-<24 chars>` | Writer username; generated per container start when omitted |
 | `PASSWORD` | Random 64 characters | Writer password; generated per container start when omitted |
+| `EXCLUDE_EDITING_PLUGINS` | `true` | Exclude editing-only plugins from the generated read-only HTML |
+| `EXCLUDED_PLUGINS_FILTER` | See below | TiddlyWiki filter selecting plugin tiddlers to omit from HTML |
 
 With `READ_ONLY_MODE=true`, anonymous users remain readers. Writing requires the
 configured credentials or the unreported random credentials generated at
@@ -65,6 +67,42 @@ remains publicly readable.
 Providing `USERNAME` and `PASSWORD` intentionally creates a known writer
 account. Setting `READ_ONLY_MODE=false` disables this protection and starts
 TiddlyWiki with `credentials=false`.
+
+## Excluding editing plugins
+
+TidGi Desktop excludes editing plugins by clearing their in-memory payloads
+with `--setfield`. This image does not use that command because a wiki with the
+filesystem syncer can persist the cleared value back to the mounted wiki.
+
+Instead, the container loads a small temporary plugin that provides a variant
+of `$:/core/save/lazy-all`. Its `saveTiddlerFilter` removes matching plugin
+tiddlers only while generating the browser HTML. The source plugin tiddlers
+remain available to the server, and source `.tid` and `.json` files on the
+mounted wiki volume are never rewritten or deleted by the exclusion feature.
+The temporary plugin is created under `/tmp` for each container start.
+
+The default filter excludes these editing-heavy plugins:
+
+- TiddlyWiki CodeMirror and all bundled CodeMirror add-ons
+- `oeyoews/tiddlywiki-codemirror-6`
+- `Gk0Wk/TW5-CodeMirror-Enhanced`
+- TiddlyWiki ProseMirror
+- `linonetwo/tw-whiteboard`
+- `linonetwo/tw-calendar`
+
+Set `EXCLUDE_EDITING_PLUGINS=false` to serve every plugin. To replace the
+defaults, provide a complete TiddlyWiki filter:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e 'EXCLUDED_PLUGINS_FILTER=[prefix[$:/plugins/tiddlywiki/codemirror]] [[$:/plugins/example/editor]]' \
+  -v /path/to/wiki:/wiki \
+  linonetwo/tiddlywiki-nodejs-readonly
+```
+
+Plugin exclusion is applied only when `READ_ONLY_MODE=true` and
+`ROOT_TIDDLER=$:/core/save/lazy-all`. A custom root tiddler is preserved, and
+the entrypoint logs that exclusion was skipped.
 
 ## CI/CD
 
